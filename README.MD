@@ -5,4 +5,5 @@ Web application for Dappy to raise funds or create a jackpot. This dapp resemble
 Based on ERC-1155.
 
 ![Hexagons on Dappy](https://github.com/fabcotech/dapp-hexagons)
+
 ![ERC 1155](https://github.com/fabcotech/rchain-erc1155)
