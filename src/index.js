@@ -9,17 +9,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // testnet
     if (window.dappy.address.includes("deltanetwork")) {
       emojisRegistryUri = 'stsfzhdxwmma94jrcg3debsjyho615nbagz3jwzwt3x4oa9pwkorzc.index';
-      document.body.setAttribute(
-        "style",
-        `background-image: url("dappy://deltanetwork/${"bmadyako1aq9xoegiy5iayq4mqxykrts8h7i9od1ed5krkfo9s6i4m.index"}");`
-      );
-      //mainnet
+    // mainnet
     } else {
-      document.body.setAttribute(
-        "style",
-        `background-image: url("dappy://deltanetwork/${"bmadyako1aq9xoegiy5iayq4mqxykrts8h7i9od1ed5krkfo9s6i4m.index"}");`
-        // style + style + `background-image: url("dappy://deltanetwork/${'ks9utbyxmjpcqygp595z5azumhum1otcmh57h9menhqqdb5jn5s57w'.index}");`
-      );
+      emojisRegistryUri = 'wo5icxdekdtapssxx5bx4jbfu6cn689spf4gjserzcw6mga9p8itdk.index';
     }
     dappyRChain
       // shortcut
