@@ -12,7 +12,7 @@
     "validatorHost": "https://node2.testnet.rchain-dev.tk",
     "validatorHostHttpPort": "443",
     "validatorHostgrpcProposePort": "40402",
-    "privateKey": "a2803d16030f83757a5043e5c0e28573685f6d8bf4e358bf1385d82bffa8e698",
-    "registryUri": "qqn8pdk9iuyrjw9t7mu581px8tfaezstz3csnohfqnhtynb79djwwd"
+    "privateKey": "",
+    "registryUri": ""
   }
 }

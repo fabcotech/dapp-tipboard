@@ -1,7 +1,7 @@
 {
   "name": "dapp-hexagons",
-  "version": "1.0.1",
-  "description": "",
+  "version": "1.0.2",
+  "description": "Web application for Dappy to raise funds or create a jackpot.",
   "main": "index.js",
   "scripts": {
     "start": "webpack --mode development --watch",
@@ -12,8 +12,8 @@
     "dappy:update": "node ./node_modules/dappy-cli/lib/ update",
     "dappy:watch": "node ./node_modules/dappy-cli/lib/ update --watch"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "FABCO",
+  "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.2.2",
     "@babel/plugin-proposal-class-properties": "^7.8.3",
@@ -24,10 +24,6 @@
     "webpack-cli": "^3.3.6"
   },
   "dependencies": {
-    "d3": "^5.16.0",
-    "d3-array": "^2.4.0",
-    "d3-hexbin": "^0.2.2",
-    "d3-selection": "^1.4.1",
     "dappy-cli": "0.4.2",
     "rchain-erc1155": "fabcotech/rchain-erc1155",
     "react": "16.8.5",

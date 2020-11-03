@@ -16,7 +16,6 @@ export class AppComponent extends React.Component {
 
   componentDidMount() {
     if (this.props.bags) {
-      console.log("yes");
       setInterval(() => {
         dappyRChain
           // shortcut
@@ -168,7 +167,7 @@ export class AppComponent extends React.Component {
           this.props.erc1155RegistryUri.replace("rho:id:", ""),
           "0",
           this.props.values.price,
-          `${payload.data}`,
+          payload.data,
           payload.quantity,
           // It must not be replaced by dappy-cli at compilation
           "PUBLIC" + "_KEY".substr(0),
@@ -250,6 +249,7 @@ export class AppComponent extends React.Component {
         <TipBoard
           onPurchase={this.onPurchase}
           values={this.props.values}
+          emojis={this.props.emojis}
           bagsData={this.state.bagsData || this.props.bagsData}
           max={this.props.bags["0"].quantity}
           bags={this.state.bags || this.props.bags}

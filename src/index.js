@@ -3,10 +3,12 @@ import ReactDOM from "react-dom";
 
 import { AppComponent } from "./App";
 
+let emojisRegistryUri = undefined;
 document.addEventListener("DOMContentLoaded", function () {
   if (typeof dappyRChain !== "undefined") {
     // testnet
-    if (window.location.href.includes("deltanetwork")) {
+    if (window.dappy.address.includes("deltanetwork")) {
+      emojisRegistryUri = 'stsfzhdxwmma94jrcg3debsjyho615nbagz3jwzwt3x4oa9pwkorzc.index';
       document.body.setAttribute(
         "style",
         `background-image: url("dappy://deltanetwork/${"bmadyako1aq9xoegiy5iayq4mqxykrts8h7i9od1ed5krkfo9s6i4m.index"}");`
@@ -48,12 +50,56 @@ document.addEventListener("DOMContentLoaded", function () {
                     return!(*file)
                   }
               }`,
+              /* Get emojis list */
+              `new return, entryCh, lookup(\`rho:registry:lookup\`), stdout(\`rho:io:stdout\`) in {
+
+                lookup!(\`rho:id:${emojisRegistryUri.split('.')[0]}\`, *entryCh) |
+      
+                for(entry <- entryCh) {
+                  new x in {
+                    entry!({ "type": "READ" }, *x) |
+                    for (y <- x) {
+                      new z in {
+                        lookup!(*y.get("files").get("${emojisRegistryUri.split('.')[1]}"), *z) |
+                        for (value <- z) {
+                          return!(*value)
+                        }
+                      }
+                    }
+                  }
+                }
+              }`,
             ])
             .then((a) => {
               const results = JSON.parse(a).results;
               const values = blockchainUtils.rhoValToJs(
                 JSON.parse(results[0].data).expr[0]
               );
+              /*
+                This process is an entire file (.json), not a string or number
+                It needs to be unzipped, see rholang-files-module, read.js script
+              */
+              const emojisJSONFile = blockchainUtils.rhoValToJs(
+                JSON.parse(results[1].data).expr[0]
+              );
+              let buff;
+              try {
+                buff = Buffer.from(emojisJSONFile, "base64");
+              } catch (err) {
+                log(
+                  "failed to retreive string from rholang process (.data.expr.ExprString.data), raw value :"
+                );
+                process.exit();
+              }
+        
+              // pako.inflate returns a UInt8Array
+              const unzippedBuffer = Buffer.from(pako.inflate(buff));
+              const fileAsString = unzippedBuffer.toString("utf-8");
+              const fileAsJson = JSON.parse(fileAsString);
+              let emojis = Buffer.from(fileAsJson.data, "base64").toString('utf-8');
+              emojis = JSON.parse(emojis).emojis;
+              console.log(emojis);
+
               console.log(
                 "files-module .values file retrieved with explore-deploy :"
               );
@@ -127,6 +173,7 @@ document.addEventListener("DOMContentLoaded", function () {
                       }}
                       bags={bags}
                       bagsData={bagsData}
+                      emojis={emojis}
                       erc1155RegistryUri={values.erc1155RegistryUri}
                     ></AppComponent>,
                     document.getElementById("root")
