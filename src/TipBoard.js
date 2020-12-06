@@ -1,45 +1,45 @@
-import React, { Fragment } from "react";
+import React, { Fragment } from 'react';
 
-import { formatter } from "./utils";
+import { formatter } from './utils';
 
 export class TipBoard extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       quantity: 0,
-      name: "",
+      name: '',
       emoji: undefined,
       displayEmojis: false,
     };
   }
 
   render() {
-    console.log(this.props);
-    const bagIds = Object.keys(this.props.bags).sort(
-      (a, b) => parseInt(b) - parseInt(a)
+    const over = this.props.quantity === 0;
+    const contributions = Object.keys(this.props.bags).filter(
+      (k) => k !== '0' && this.props.bags[k].n === '0'
     );
-    const over = this.props.values.sold[1] === this.props.values.sold[0];
+    const keys = Object.keys(this.props.bags);
+    let sold = 0;
+    for (let i = 1; i < keys.length; i += 1) {
+      if (keys[i] !== '0' && this.props.bags[keys[i]].n === '0') {
+        sold += this.props.bags[keys[i]].quantity;
+      }
+    }
+    const total = this.props.quantity + sold;
     return (
       <div className="tip-board">
-        <h3 className="title is-3">{decodeURI(this.props.values.title)}</h3>
+        <h3 className="title is-3">{this.props.values.title}</h3>
         {this.props.values.description && (
-          <p className="description">
-            {decodeURI(this.props.values.description)}
-          </p>
+          <p className="description">{this.props.values.description}</p>
         )}
         {over && <h3 className="title is-4">All tokens are sold !</h3>}
         <p>
-          {this.props.values.sold[1]} out of {this.props.values.sold[0]} tokens
-          sold (
-          {Math.round(
-            (100 * this.props.values.sold[1]) / this.props.values.sold[0]
-          )}
+          {sold} out of {total} tokens sold ({Math.round((100 * sold) / total)}
           %)
         </p>
         <p>
-          {this.props.values.sold[0] - this.props.values.sold[1]} tokens are for
-          sale at a price of{" "}
-          {formatter.format(this.props.values.price / 100000000)} REV per token
+          {this.props.quantity} tokens are for sale at a price of{' '}
+          {formatter.format(this.props.price / 100000000)} REV per token
         </p>
         <br />
         {!over && (
@@ -70,11 +70,9 @@ export class TipBoard extends React.Component {
                     className="input"
                     type="text"
                   />
-                  {
-                    this.state.emoji ?
-                    <span className="label-emoji">{this.state.emoji}</span> :
-                    undefined
-                  }
+                  {this.state.emoji ? (
+                    <span className="label-emoji">{this.state.emoji}</span>
+                  ) : undefined}
                 </div>
               </div>
               <div className="field">
@@ -83,21 +81,20 @@ export class TipBoard extends React.Component {
                   <span className="total-price">
                     <b>
                       {formatter.format(
-                        (this.state.quantity * this.props.values.price) /
-                          100000000
+                        (this.state.quantity * this.props.price) / 100000000
                       )}
                     </b>
-                    {" REV"}
+                    {' REV'}
                   </span>
                   <br />
-                  {this.state.quantity * this.props.values.price < 100000000 && (
+                  {this.state.quantity * this.props.price < 100000000 && (
                     <span className="total-price">
                       <b>
                         {formatter.format(
-                          this.state.quantity * this.props.values.price
+                          this.state.quantity * this.props.price
                         )}
                       </b>
-                      {" dusts"}
+                      {' dusts'}
                     </span>
                   )}
                 </div>
@@ -113,7 +110,7 @@ export class TipBoard extends React.Component {
                     if (this.state.emoji) {
                       data.emoji = this.state.emoji;
                     }
-                    data = JSON.stringify(data);
+                    data = encodeURI(JSON.stringify(data));
                     if (this.state.quantity) {
                       this.props.onPurchase({
                         quantity: this.state.quantity,
@@ -127,75 +124,76 @@ export class TipBoard extends React.Component {
               </div>
             </div>
             <div className="field">
-              <p>You can choose an emoji to associate with your contribution</p>
-              {
-                this.state.displayEmojis ?
-                  <a
-                    className="emoji-btn"
-                    onClick={() => { this.setState({ displayEmojis: false })}}
-                    href="#"
-                  >
-                      Hide emojis list
-                  </a> :
-                  <a
-                    className="emoji-btn"
-                    onClick={() => { this.setState({ displayEmojis: true })}}
-                    href="#"
-                  >
-                      Display emojis list
-                  </a>
-              }
-              {
-                this.state.displayEmojis ?
+              {this.props.emojis.length && (
+                <p>
+                  You can choose an emoji to associate with your contribution
+                </p>
+              )}
+              {this.state.displayEmojis && (
+                <a
+                  className="emoji-btn"
+                  onClick={() => {
+                    this.setState({ displayEmojis: false });
+                  }}
+                  href="#"
+                >
+                  Hide emojis list
+                </a>
+              )}
+              {!this.state.displayEmojis && this.props.emojis.length && (
+                <a
+                  className="emoji-btn"
+                  onClick={() => {
+                    this.setState({ displayEmojis: true });
+                  }}
+                  href="#"
+                >
+                  Display emojis list
+                </a>
+              )}
+              {this.state.displayEmojis ? (
                 <div className="emojis-list">
-                  <span onClick={ () => this.setState({ emoji: undefined })}>✕</span>
-                  {
-                    this.props.emojis.map((e, i) => {
-                      return (
-                        <span
-                          onClick={ () => this.setState({ emoji: e })}
-                          key={i}
-                        >
-                          {e}
-                        </span>
-                      );
-                    })
-                  }
-                </div> :
-                undefined
-              }
+                  <span onClick={() => this.setState({ emoji: undefined })}>
+                    ✕
+                  </span>
+                  {this.props.emojis.map((e, i) => {
+                    return (
+                      <span onClick={() => this.setState({ emoji: e })} key={i}>
+                        {e}
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : undefined}
             </div>
           </div>
         )}
         <div className="tips">
-          <p>{bagIds.length - 1} contributions :</p>
-          {bagIds.map((bagId) => {
-            if (bagId === "0") {
-              return undefined;
-            }
-
+          <p>{contributions.length} contributions :</p>
+          {contributions.map((bagId) => {
             let data;
             try {
               data = JSON.parse(decodeURI(this.props.bagsData[bagId]));
             } catch (err) {
               console.log(err);
-              return <p key={bagId} className="">Unable to parse</p>
+              return (
+                <p key={bagId} className="">
+                  Unable to parse
+                </p>
+              );
             }
             return (
               <p key={bagId}>
                 <b className="name">
                   {data.emoji ? data.emoji + ' ' : ''}
-                  {this.props.bagsData[bagId]
-                    ? data.name
-                    : "Anonymous"}
-                </b>{" "}
+                  {this.props.bagsData[bagId] ? data.name : 'Anonymous'}
+                </b>{' '}
                 <span>tipped</span>
                 <b className="amount">
                   {formatter.format(
-                    (this.props.bags[bagId].quantity *
-                      this.props.values.price) /
+                    (this.props.bags[bagId].quantity * this.props.price) /
                       100000000
-                  )}{" "}
+                  )}{' '}
                   REV
                 </b>
               </p>

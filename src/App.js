@@ -1,8 +1,14 @@
-import React from "react";
-import { erc1155Term, purchaseTokensTerm } from "rchain-erc1155";
+import React from 'react';
+import { createTokensTerm } from 'rchain-token-files';
+import {
+  mainTerm,
+  purchaseTokensTerm,
+  readBagsTerm,
+  readBagsOrTokensDataTerm,
+} from 'rchain-token';
 
-import { GenesisFormComponent } from "./GenesisForm";
-import { TipBoard } from "./TipBoard";
+import { GenesisFormComponent } from './GenesisForm';
+import { TipBoard } from './TipBoard';
 
 export class AppComponent extends React.Component {
   constructor(props) {
@@ -19,36 +25,9 @@ export class AppComponent extends React.Component {
       setInterval(() => {
         dappyRChain
           // shortcut
-          .exploreDeploys("dappy://explore-deploys", [
-            /* Get all bags from ERC-1155 contract */
-            `new return,
-          entryCh,
-          lookup(\`rho:registry:lookup\`)
-          in {
-            lookup!(\`${this.props.values.erc1155RegistryUri}\`, *entryCh) |
-            for(entry <- entryCh) {
-              entry!(
-                {
-                  "type": "READ_BAGS",
-                },
-                *return
-              )
-            }
-          }`,
-            `new return,
-          entryCh,
-          lookup(\`rho:registry:lookup\`)
-          in {
-            lookup!(\`${this.props.values.erc1155RegistryUri}\`, *entryCh) |
-            for(entry <- entryCh) {
-              entry!(
-                {
-                  "type": "READ_BAGS_DATA",
-                },
-                *return
-              )
-            }
-          }`,
+          .exploreDeploys([
+            readBagsTerm(this.props.registryUri),
+            readBagsOrTokensDataTerm(this.props.registryUri, 'bags'),
           ])
           .then((a2) => {
             const results2 = JSON.parse(a2).results;
@@ -67,95 +46,98 @@ export class AppComponent extends React.Component {
     }
   }
   onValuesChosen = (payload) => {
-    if (typeof dappyRChain === "undefined") {
-      console.warn("window.dappyRChain is undefined, cannot deploy ERC1155");
+    this.setState({ deploying: 1 });
+    if (typeof dappyRChain === 'undefined') {
+      console.warn(
+        'window.dappyRChain is undefined, cannot deploy rchain-token'
+      );
       return;
     }
 
-    /*
-      token will be created by default in the deployment of the ERC-1155 contract
-    */
-    let defaultBags = `"0": { "publicKey": "${
-      "PUBLIC" +
-      "_KEY".substr(0) /* It must not be replaced by dappy-cli at compilation*/
-    }", "n": "0", "price": ${payload.price}, "quantity": ${payload.quantity} }`;
-
-    const nonceForErc1155Term = blockchainUtils.generateNonce();
-    const nonceForFilesModule = blockchainUtils.generateNonce();
-
-    const erc1155ContractTerm = erc1155Term(
-      nonceForErc1155Term,
-      "PUBLIC" + "_KEY".substr(0) // It must not be replaced by dappy-cli at compilation
+    // deploy a new rchain-token (not rchain-token-files)
+    const term = mainTerm(
+      blockchainUtils.generateNonce(),
+      this.props.publicKey
+    ).replace(
+      '/*DEFAULT_BAGS*/',
+      JSON.stringify({
+        0: {
+          quantity: payload.quantity,
+          price: payload.price,
+          nonce: blockchainUtils.generateNonce(),
+          publicKey: this.props.publicKey,
+          n: '0',
+        },
+      })
     );
 
-    /*
-      Add tokens by default in the contract
-    */
-    const erc1155TermWithDefaultBags = erc1155ContractTerm.replace(
-      "/*DEFAULT_BAGS*/",
-      defaultBags
-    );
-    /*
-      When the ERC-1155 contract is created, we must record the values in the
-      files module
-    */
-    const erc1155TermWithDefaultBagsAndReturnChannel = erc1155TermWithDefaultBags.replace(
-      "/*OUTPUT_CHANNEL*/",
-      `| erc1155OutputCh!({
-        "registryUri": *entryUri,
-      })`
-    );
-
-    // Storing the registry URI value in the files module
-    const term = `
-   new entryCh, erc1155OutputCh, lookup(\`rho:registry:lookup\`), stdout(\`rho:io:stdout\`) in {
-
-     ${erc1155TermWithDefaultBagsAndReturnChannel} |
-
-     for (@output <- erc1155OutputCh) { 
-       stdout!({
-         "quantity": ${payload.quantity},
-         "price": ${payload.price},
-         "title": "${payload.title}",
-         "description": "${payload.description}",
-         "erc1155RegistryUri": output.get("registryUri"),
-       }) |
-
-       lookup!(\`rho:id:REGISTRY_URI\`, *entryCh) |
-     
-       for(entry <- entryCh) {
-         entry!(
-           {
-             "type": "ADD",
-             "payload": {
-               "id": "values",
-               "file": {
-                "quantity": ${payload.quantity},
-                "price": ${payload.price},
-                "title": "${payload.title}",
-                "description": "${payload.description}",
-                 "erc1155RegistryUri": output.get("registryUri"),
-               },
-               "nonce": "${nonceForFilesModule}",
-               "signature": "SIGNATURE"
-             }
-           },
-           *stdout
-         )
-       }
-     }
-   }
-   `;
     dappyRChain
       .transaction({
         term: term,
-        signatures: {
-          SIGNATURE: payload.nonce,
-        },
+        signatures: {},
       })
       .then((a) => {
-        this.setState({
-          modal: "values-chosen",
+        this.setState({ deploying: 2 });
+        new Promise((resolve, reject) => {
+          setInterval(() => {
+            const transactions = dappyStore.getState().transactions;
+            const ids = Object.keys(transactions);
+            if (ids.length) {
+              if (
+                transactions[ids[0]].value &&
+                transactions[ids[0]].value.registryUri
+              ) {
+                resolve(transactions[ids[0]].value);
+              } else {
+                console.log('result from deploy not found yet');
+              }
+            }
+          }, 4000);
+        }).then((mainValues2) => {
+          this.setState({ deploying: 3 });
+          // deploy just for storing the information of the newly deployed rchain-token (not rchain-token-files)
+          // on the already-deployed rchain-token-files contract, in a new bag "0"
+          const payloadForTerm = {
+            bags: {
+              ['0']: {
+                price: null,
+                quantity: 1,
+                n: '0',
+                publicKey: this.props.publicKey,
+                nonce: blockchainUtils.generateNonce(),
+              },
+            },
+            data: {
+              ['0']: encodeURI(
+                JSON.stringify({
+                  registryUri: mainValues2.registryUri.replace('rho:id:', ''),
+                  title: payload.title,
+                  description: payload.description,
+                })
+              ),
+            },
+            nonce: this.props.nonce,
+            newNonce: blockchainUtils.generateNonce(),
+          };
+          const ba = blockchainUtils.toByteArray(payloadForTerm);
+          const term = createTokensTerm(
+            this.props.registryUri.replace('rho:id:', ''),
+            payloadForTerm,
+            'SIGN'
+          );
+          dappyRChain
+            .transaction({
+              term: term,
+              signatures: {
+                SIGN: blockchainUtils.uInt8ArrayToHex(ba),
+              },
+            })
+            .then((a) => {
+              this.setState({
+                modal: 'values-chosen',
+                deploying: undefined,
+              });
+            });
         });
       });
   };
@@ -163,27 +145,40 @@ export class AppComponent extends React.Component {
   onPurchase = (payload) => {
     dappyRChain
       .transaction({
-        term: purchaseTokensTerm(
-          this.props.erc1155RegistryUri.replace("rho:id:", ""),
-          "0",
-          this.props.values.price,
-          payload.data,
-          payload.quantity,
+        term: purchaseTokensTerm(this.props.registryUri, {
+          price: this.props.bags['0'].price,
+          quantity: payload.quantity,
+          data: payload.data,
+          bagId: '0',
           // It must not be replaced by dappy-cli at compilation
-          "PUBLIC" + "_KEY".substr(0),
-          blockchainUtils.generateNonce()
-        ),
+          publicKey: 'PUBLIC' + '_KEY'.substr(0),
+          bagNonce: blockchainUtils.generateNonce(),
+        }),
         signatures: {},
       })
       .then((a) => {
         this.setState({
-          modal: "purchase",
+          modal: 'purchase',
         });
       });
   };
 
   render() {
-    if (this.state.modal === "purchase") {
+    if (this.state.deploying) {
+      return (
+        <div>
+          <p>
+            <br />
+            <br />
+            <br />
+            <br />
+            Now deploying contracts ({this.state.deploying}/3), please do not
+            refresh or close tab
+          </p>
+        </div>
+      );
+    }
+    if (this.state.modal === 'purchase') {
       return (
         <div className="modal">
           <div className="modal-background"></div>
@@ -197,9 +192,8 @@ export class AppComponent extends React.Component {
               ></button>
             </header>
             <section className="modal-card-body">
-              Transaction was successfully sent. Wait few minutes, reload, and
-              you should see your cell with the color you chose. Thank you for
-              your participation.
+              Transaction was successfully sent. Wait few minutes and you should
+              see your contribution.
             </section>
             <footer className="modal-card-foot">
               <button
@@ -214,7 +208,7 @@ export class AppComponent extends React.Component {
       );
     }
 
-    if (this.state.modal === "genesis-form") {
+    if (this.state.modal === 'genesis-form') {
       return (
         <div className="modal">
           <div className="modal-background"></div>
@@ -228,8 +222,8 @@ export class AppComponent extends React.Component {
               ></button>
             </header>
             <section className="modal-card-body">
-              Submit was successful, wait few minutes, reload, and the ERC-1155
-              contract should be initiated.
+              Submit was successful, wait few minutes, reload, and the
+              rchain-token contract should be initiated.
             </section>
             <footer className="modal-card-foot">
               <button
@@ -243,7 +237,6 @@ export class AppComponent extends React.Component {
         </div>
       );
     }
-
     if (this.props.values) {
       return (
         <TipBoard
@@ -251,7 +244,8 @@ export class AppComponent extends React.Component {
           values={this.props.values}
           emojis={this.props.emojis}
           bagsData={this.state.bagsData || this.props.bagsData}
-          max={this.props.bags["0"].quantity}
+          quantity={this.props.bags['0'].quantity}
+          price={this.props.bags['0'].price}
           bags={this.state.bags || this.props.bags}
         ></TipBoard>
       );
@@ -260,7 +254,6 @@ export class AppComponent extends React.Component {
     return (
       <GenesisFormComponent
         onValuesChosen={this.onValuesChosen}
-        nonce={this.props.nonce}
       ></GenesisFormComponent>
     );
   }

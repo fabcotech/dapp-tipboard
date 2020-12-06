@@ -1,18 +1,16 @@
-import React from "react";
+import React from 'react';
 
-import { formatter } from "./utils";
+import { formatter } from './utils';
 
 export class GenesisFormComponent extends React.Component {
   state = {
-    title: "Help me buy a sword !",
-    description: "",
+    title: 'Help me buy a sword !',
+    description: '',
     price: 100000000,
     quantity: 1000,
   };
 
   render() {
-    console.log(this.state);
-
     return (
       <div className="genesis-form form">
         <div id="canvas"></div>
@@ -85,13 +83,13 @@ export class GenesisFormComponent extends React.Component {
           this.state.quantity &&
           this.state.title ? (
             <p>
-              Total REV :{" "}
+              Total REV :{' '}
               {formatter.format(
                 (this.state.price * this.state.quantity) / 100000000
-              )}{" "}
+              )}{' '}
               <br />
-              Total dust (1 REV equals 100.000.000 dust):{" "}
-              {formatter.format(this.state.price * this.state.quantity)}{" "}
+              Total dust (1 REV equals 100.000.000 dust):{' '}
+              {formatter.format(this.state.price * this.state.quantity)}{' '}
             </p>
           ) : undefined}
         </div>
@@ -118,9 +116,8 @@ export class GenesisFormComponent extends React.Component {
                 this.props.onValuesChosen({
                   price: this.state.price,
                   quantity: this.state.quantity,
-                  title: encodeURI(this.state.title),
-                  description: encodeURI(this.state.description),
-                  nonce: this.props.nonce,
+                  title: this.state.title,
+                  description: this.state.description,
                 });
               }
             }}
