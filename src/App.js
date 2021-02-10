@@ -208,7 +208,7 @@ export class AppComponent extends React.Component {
       );
     }
 
-    if (this.state.modal === 'genesis-form') {
+    if (this.state.modal === 'values-chosen') {
       return (
         <div className="modal">
           <div className="modal-background"></div>
