@@ -4,50 +4,43 @@ import ReactDOM from 'react-dom';
 import { AppComponent } from './App';
 
 import {
-  readBagsOrTokensDataTerm as readBagsOrTokensDataTerm2,
-  read,
-} from 'rchain-token-files';
-import { readBagsOrTokensDataTerm, readBagsTerm } from 'rchain-token';
+  readPursesIdsTerm,
+  readTerm,
+  readPursesDataTerm,
+  readPursesTerm,
+} from 'rchain-token';
+
+const bodyError = (err) => {
+  const e = document.createElement('span');
+  e.style.color = '#B22';
+  e.innerText = err;
+  document.body.innerHTML = '';
+  document.body.style.background = '#111';
+  document.body.appendChild(e);
+};
 
 let emojisRegistryUri = undefined;
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof dappyRChain !== 'undefined') {
     // testnet
-    if (window.dappy.address.includes('deltanetwork')) {
-      emojisRegistryUri =
-        'stsfzhdxwmma94jrcg3debsjyho615nbagz3jwzwt3x4oa9pwkorzc.index';
-      // mainnet
-    } else {
-      emojisRegistryUri =
-        'wo5icxdekdtapssxx5bx4jbfu6cn689spf4gjserzcw6mga9p8itdk.index';
+    let contractRegistryUri;
+    if (window.location.search.startsWith('?contract=')) {
+      contractRegistryUri = window.location.search.slice('?contract='.length);
     }
 
-    // Get values from rchain-token-files contract
+    if (!contractRegistryUri || contractRegistryUri.length !== 54) {
+      bodyError(
+        'did not find registry URI in parameters ?contract=x, length must be 54'
+      );
+      return;
+    }
+
+    // Get values from rchain-token contract
     dappyRChain
       .exploreDeploys([
-        read('REGISTRY_URI'),
-        readBagsOrTokensDataTerm2('REGISTRY_URI', 'bags'),
-        /* Get emojis list */
-        `new return, entryCh, lookup(\`rho:registry:lookup\`), stdout(\`rho:io:stdout\`) in {
-
-        lookup!(\`rho:id:${emojisRegistryUri.split('.')[0]}\`, *entryCh) |
-
-        for(entry <- entryCh) {
-          new x in {
-            entry!({ "type": "READ" }, *x) |
-            for (y <- x) {
-              new z in {
-                lookup!(*y.get("files").get("${
-                  emojisRegistryUri.split('.')[1]
-                }"), *z) |
-                for (value <- z) {
-                  return!(*value)
-                }
-              }
-            }
-          }
-        }
-      }`,
+        readTerm(contractRegistryUri),
+        readPursesIdsTerm(contractRegistryUri),
+        readPursesDataTerm(contractRegistryUri, { pursesIds: ['3'] }),
       ])
       .then((a) => {
         const results = JSON.parse(a).results;
@@ -56,15 +49,34 @@ document.addEventListener('DOMContentLoaded', function () {
           JSON.parse(results[0].data).expr[0]
         );
 
-        const bagsData = blockchainUtils.rhoValToJs(
+        const pursesIds = blockchainUtils.rhoValToJs(
           JSON.parse(results[1].data).expr[0]
         );
+
+        let data;
+        if (JSON.parse(results[2].data).expr[0]) {
+          data = blockchainUtils.rhoValToJs(
+            JSON.parse(results[2].data).expr[0]
+          );
+        }
+
+        if (mainValues.fungible !== true) {
+          bodyError(
+            'This contract is fungible=true, you need a fungible=false contract to use tipboard'
+          );
+          return;
+        }
+
+        if (mainValues.version !== '5.0.0') {
+          bodyError('Version should be 5.0.0');
+          return;
+        }
 
         /*
         This process is an entire file (.json), not a string or number
         It needs to be unzipped, see rholang-files-module, read.js script
       */
-        let buff;
+        /*         let buff;
         let emojis = {};
         try {
           const emojisJSONFile = blockchainUtils.rhoValToJs(
@@ -83,40 +95,49 @@ document.addEventListener('DOMContentLoaded', function () {
           console.log(
             'failed to retreive emojis (.data.expr.ExprString.data), raw value :'
           );
-        }
+        } */
 
-        // if bagsData['0'] it means tha rchain-token has already been depoloyed
-        if (bagsData['0']) {
+        // if pursesIds includes '3' it means tha rchain-token has already been depoloyed
+        if (pursesIds.includes('3')) {
           // Get values from rchain-token contract
-          const values = JSON.parse(decodeURI(bagsData['0']));
+          const values = JSON.parse(decodeURI(data['3']));
           document.title = values.title;
           if (
-            typeof values.registryUri === 'string' &&
+            typeof values.price === 'number' &&
+            typeof values.quantity === 'number' &&
             typeof values.description === 'string' &&
             typeof values.title === 'string'
           ) {
             dappyRChain
               .exploreDeploys([
-                readBagsTerm(values.registryUri),
-                readBagsOrTokensDataTerm(values.registryUri, 'bags'),
+                readPursesTerm(contractRegistryUri, {
+                  pursesIds: pursesIds,
+                }),
+                readPursesDataTerm(contractRegistryUri, {
+                  pursesIds: pursesIds,
+                }),
               ])
               .then((b) => {
                 const results = JSON.parse(b).results;
-                const bags2 = blockchainUtils.rhoValToJs(
-                  JSON.parse(results[0].data).expr[0]
-                );
-                const bagsData2 = blockchainUtils.rhoValToJs(
-                  JSON.parse(results[1].data).expr[0]
-                );
+                let purses = {};
+                const expr = JSON.parse(results[0].data).expr[0];
+                if (expr) {
+                  purses = blockchainUtils.rhoValToJs(expr);
+                }
+
+                let pursesData = {};
+                const expr2 = JSON.parse(results[1].data).expr[0];
+                if (expr2) {
+                  pursesData = blockchainUtils.rhoValToJs(expr2);
+                }
 
                 document.getElementById('root').setAttribute('class', 'loaded');
                 ReactDOM.render(
                   <AppComponent
                     values={values}
-                    bags={bags2}
-                    bagsData={bagsData2}
-                    emojis={emojis}
-                    registryUri={values.registryUri}
+                    purses={purses}
+                    pursesData={pursesData}
+                    registryUri={contractRegistryUri}
                   ></AppComponent>,
                   document.getElementById('root')
                 );
@@ -125,22 +146,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.log(err);
               });
           } else {
-            console.error(
-              'values must have title, description and registryUri'
+            bodyError(
+              'values must have title, description, price and quantity'
             );
+            return;
           }
         } else {
           dappyRChain
             .identify({ publicKey: undefined })
             .then((a) => {
               if (a.identified) {
+                if (!a.box) {
+                  bodyError(
+                    'Need a box for identification, please associate a token box to your account'
+                  );
+                  return;
+                }
                 document.getElementById('root').setAttribute('class', 'loaded');
                 ReactDOM.render(
                   <AppComponent
-                    registryUri={mainValues.registryUri}
-                    nonce={mainValues.nonce}
+                    registryUri={contractRegistryUri}
                     publicKey={a.publicKey}
-                    nonce={mainValues.nonce}
+                    box={a.box}
                     values={undefined}
                     bags={undefined}
                     bagsData={undefined}
@@ -148,17 +175,20 @@ document.addEventListener('DOMContentLoaded', function () {
                   document.getElementById('root')
                 );
               } else {
+                bodyError('This dapp needs identification');
                 console.error('This dapp needs identification');
               }
             })
             .catch((err) => {
               console.log(err);
+              bodyError('This dapp needs identification');
               console.error('This dapp needs identification');
             });
         }
       })
       .catch((err) => {
         console.log(err);
+        bodyError('Unknown error');
         console.error('error');
       });
   }

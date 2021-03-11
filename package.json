@@ -24,9 +24,8 @@
     "webpack-cli": "^3.3.6"
   },
   "dependencies": {
-    "dappy-cli": "0.4.5",
-    "rchain-token": "fabcotech/rchain-token#61cb05aa587872aabea212d1fc38f07141405adc",
-    "rchain-token-files": "fabcotech/rchain-token#aaf8df2b9715608f307647989f5f8f3e24565bae",
+    "dappy-cli": "0.4.6",
+    "rchain-token": "fabcotech/rchain-token#76a651e05bd2075c448b8bd7118462a07198bb34",
     "react": "16.8.5",
     "react-dom": "16.8.5"
   }

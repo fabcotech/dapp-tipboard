@@ -11,8 +11,8 @@
     "readOnlyHostHttpPort": "40403",
     "validatorHost": "http://127.0.0.1",
     "validatorHostHttpPort": "40403",
-    "validatorHostgrpcProposePort": "40402",
     "privateKey": "",
-    "registryUri": ""
+    "registryUri": "",
+    "boxRegistryUri": ""
   }
 }

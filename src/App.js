@@ -1,10 +1,10 @@
 import React from 'react';
-import { createTokensTerm } from 'rchain-token-files';
 import {
-  mainTerm,
-  purchaseTokensTerm,
-  readBagsTerm,
-  readBagsOrTokensDataTerm,
+  readPursesIdsTerm,
+  readPursesDataTerm,
+  createPursesTerm,
+  purchaseTerm,
+  readPursesTerm,
 } from 'rchain-token';
 
 import { GenesisFormComponent } from './GenesisForm';
@@ -15,32 +15,50 @@ export class AppComponent extends React.Component {
     super(props);
     this.state = {
       modal: undefined,
-      bags: undefined,
-      bagsData: undefined,
+      purses: undefined,
+      pursesData: undefined,
     };
   }
 
   componentDidMount() {
-    if (this.props.bags) {
+    if (this.props.purses) {
       setInterval(() => {
         dappyRChain
           // shortcut
-          .exploreDeploys([
-            readBagsTerm(this.props.registryUri),
-            readBagsOrTokensDataTerm(this.props.registryUri, 'bags'),
-          ])
+          .exploreDeploys([readPursesIdsTerm(this.props.registryUri)])
           .then((a2) => {
             const results2 = JSON.parse(a2).results;
-            const bags = blockchainUtils.rhoValToJs(
+            const pursesIds = blockchainUtils.rhoValToJs(
               JSON.parse(results2[0].data).expr[0]
             );
-            const bagsData = blockchainUtils.rhoValToJs(
-              JSON.parse(results2[1].data).expr[0]
-            );
-            this.setState({
-              bags: bags,
-              bagsData: bagsData,
-            });
+            dappyRChain
+              .exploreDeploys([
+                readPursesTerm(this.props.registryUri, {
+                  pursesIds: pursesIds,
+                }),
+                readPursesDataTerm(this.props.registryUri, {
+                  pursesIds: pursesIds,
+                }),
+              ])
+              .then((b) => {
+                const results = JSON.parse(b).results;
+                let purses = {};
+                const expr = JSON.parse(results[0].data).expr[0];
+                if (expr) {
+                  purses = blockchainUtils.rhoValToJs(expr);
+                }
+
+                let pursesData = {};
+                const expr2 = JSON.parse(results[1].data).expr[0];
+                if (expr2) {
+                  pursesData = blockchainUtils.rhoValToJs(expr2);
+                }
+
+                this.setState({
+                  purses: purses,
+                  pursesData: pursesData,
+                });
+              });
           });
       }, 15000);
     }
@@ -54,22 +72,38 @@ export class AppComponent extends React.Component {
       return;
     }
 
-    // deploy a new rchain-token (not rchain-token-files)
-    const term = mainTerm(
-      blockchainUtils.generateNonce(),
-      this.props.publicKey
-    ).replace(
-      '/*DEFAULT_BAGS*/',
-      JSON.stringify({
-        0: {
+    const payloadCreatePurse = {
+      purses: {
+        ['0']: {
+          id: '0',
+          publicKey: this.props.publicKey,
+          type: '0',
           quantity: payload.quantity,
           price: payload.price,
-          nonce: blockchainUtils.generateNonce(),
-          publicKey: this.props.publicKey,
-          n: '0',
         },
-      })
-    );
+        ['1']: {
+          id: '1',
+          publicKey: this.props.publicKey,
+          type: 'data',
+          quantity: 1,
+          price: null,
+        },
+      },
+      data: {
+        ['0']: null,
+        ['1']: encodeURI(
+          JSON.stringify({
+            title: payload.title,
+            description: payload.description,
+            price: payload.price,
+            quantity: payload.quantity,
+          })
+        ),
+      },
+      fromBoxRegistryUri: this.props.box,
+    };
+
+    const term = createPursesTerm(this.props.registryUri, payloadCreatePurse);
 
     dappyRChain
       .transaction({
@@ -85,7 +119,7 @@ export class AppComponent extends React.Component {
             if (ids.length) {
               if (
                 transactions[ids[0]].value &&
-                transactions[ids[0]].value.registryUri
+                transactions[ids[0]].value.status === 'completed'
               ) {
                 resolve(transactions[ids[0]].value);
               } else {
@@ -94,50 +128,10 @@ export class AppComponent extends React.Component {
             }
           }, 4000);
         }).then((mainValues2) => {
-          this.setState({ deploying: 3 });
-          // deploy just for storing the information of the newly deployed rchain-token (not rchain-token-files)
-          // on the already-deployed rchain-token-files contract, in a new bag "0"
-          const payloadForTerm = {
-            bags: {
-              ['0']: {
-                price: null,
-                quantity: 1,
-                n: '0',
-                publicKey: this.props.publicKey,
-                nonce: blockchainUtils.generateNonce(),
-              },
-            },
-            data: {
-              ['0']: encodeURI(
-                JSON.stringify({
-                  registryUri: mainValues2.registryUri.replace('rho:id:', ''),
-                  title: payload.title,
-                  description: payload.description,
-                })
-              ),
-            },
-            nonce: this.props.nonce,
-            newNonce: blockchainUtils.generateNonce(),
-          };
-          const ba = blockchainUtils.toByteArray(payloadForTerm);
-          const term = createTokensTerm(
-            this.props.registryUri.replace('rho:id:', ''),
-            payloadForTerm,
-            'SIGN'
-          );
-          dappyRChain
-            .transaction({
-              term: term,
-              signatures: {
-                SIGN: blockchainUtils.uInt8ArrayToHex(ba),
-              },
-            })
-            .then((a) => {
-              this.setState({
-                modal: 'values-chosen',
-                deploying: undefined,
-              });
-            });
+          this.setState({
+            modal: 'values-chosen',
+            deploying: undefined,
+          });
         });
       });
   };
@@ -145,14 +139,18 @@ export class AppComponent extends React.Component {
   onPurchase = (payload) => {
     dappyRChain
       .transaction({
-        term: purchaseTokensTerm(this.props.registryUri, {
-          price: this.props.bags['0'].price,
+        term: purchaseTerm(this.props.registryUri, {
+          // save separate purses in box even if same .type and .price Nil
+          actionAfterPurchase: 'SAVE_PURSE_SEPARATELY',
+          // avoid replacement of dappy cli
+          toBoxRegistryUri: ['TO_BOX_REGI', 'STRY_URI'].join(''),
+          purseId: '2',
           quantity: payload.quantity,
           data: payload.data,
-          bagId: '0',
-          // It must not be replaced by dappy-cli at compilation
+          newId: '', //ignored
+          price: this.props.purses['2'].price,
+          // avoid replacement of dappy cli
           publicKey: 'PUBLIC' + '_KEY'.substr(0),
-          bagNonce: blockchainUtils.generateNonce(),
         }),
         signatures: {},
       })
@@ -243,10 +241,8 @@ export class AppComponent extends React.Component {
           onPurchase={this.onPurchase}
           values={this.props.values}
           emojis={this.props.emojis}
-          bagsData={this.state.bagsData || this.props.bagsData}
-          quantity={this.props.bags['0'].quantity}
-          price={this.props.bags['0'].price}
-          bags={this.state.bags || this.props.bags}
+          pursesData={this.state.pursesData || this.props.pursesData}
+          purses={this.state.purses || this.props.purses}
         ></TipBoard>
       );
     }

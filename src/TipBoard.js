@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React from 'react';
 
 import { formatter } from './utils';
 
@@ -14,32 +14,46 @@ export class TipBoard extends React.Component {
   }
 
   render() {
-    const over = this.props.quantity === 0;
-    const contributions = Object.keys(this.props.bags).filter(
-      (k) => k !== '0' && this.props.bags[k].n === '0'
-    );
-    const keys = Object.keys(this.props.bags);
+    const mainPurse = this.props.purses['2'];
+    const dataMainPurse = JSON.parse(decodeURI(this.props.pursesData['3']));
+
+    const over = !mainPurse || mainPurse.quantity === 0;
+    const contributions = Object.keys(this.props.purses)
+      .filter((k) => k !== '2' && this.props.purses[k].type === '0')
+      .sort((a, b) => {
+        if (a < b) {
+          return 1;
+        } else {
+          return -1;
+        }
+      });
+
+    const keys = Object.keys(this.props.purses);
     let sold = 0;
     for (let i = 1; i < keys.length; i += 1) {
-      if (keys[i] !== '0' && this.props.bags[keys[i]].n === '0') {
-        sold += this.props.bags[keys[i]].quantity;
+      if (keys[i] !== '2' && this.props.purses[keys[i]].type === '0') {
+        sold += this.props.purses[keys[i]].quantity;
       }
     }
-    const total = this.props.quantity + sold;
+    const total = dataMainPurse.quantity;
     return (
       <div className="tip-board">
         <h3 className="title is-3">{this.props.values.title}</h3>
         {this.props.values.description && (
           <p className="description">{this.props.values.description}</p>
         )}
-        {over && <h3 className="title is-4">All tokens are sold !</h3>}
+        {over && <p>All tokens are sold !</p>}
         <p>
           {sold} out of {total} tokens sold ({Math.round((100 * sold) / total)}
           %)
         </p>
         <p>
-          {this.props.quantity} tokens are for sale at a price of{' '}
-          {formatter.format(this.props.price / 100000000)} REV per token
+          {mainPurse ? (
+            <span>
+              {mainPurse.quantity} tokens are for sale at a price of{' '}
+              {formatter.format(mainPurse.price / 100000000)} REV per token
+            </span>
+          ) : undefined}
         </p>
         <br />
         {!over && (
@@ -81,17 +95,17 @@ export class TipBoard extends React.Component {
                   <span className="total-price">
                     <b>
                       {formatter.format(
-                        (this.state.quantity * this.props.price) / 100000000
+                        (this.state.quantity * mainPurse.price) / 100000000
                       )}
                     </b>
                     {' REV'}
                   </span>
                   <br />
-                  {this.state.quantity * this.props.price < 100000000 && (
+                  {this.state.quantity * mainPurse.price < 100000000 && (
                     <span className="total-price">
                       <b>
                         {formatter.format(
-                          this.state.quantity * this.props.price
+                          this.state.quantity * mainPurse.price
                         )}
                       </b>
                       {' dusts'}
@@ -123,75 +137,32 @@ export class TipBoard extends React.Component {
                 </button>
               </div>
             </div>
-            <div className="field">
-              {this.props.emojis.length && (
-                <p>
-                  You can choose an emoji to associate with your contribution
-                </p>
-              )}
-              {this.state.displayEmojis && (
-                <a
-                  className="emoji-btn"
-                  onClick={() => {
-                    this.setState({ displayEmojis: false });
-                  }}
-                  href="#"
-                >
-                  Hide emojis list
-                </a>
-              )}
-              {!this.state.displayEmojis && this.props.emojis.length && (
-                <a
-                  className="emoji-btn"
-                  onClick={() => {
-                    this.setState({ displayEmojis: true });
-                  }}
-                  href="#"
-                >
-                  Display emojis list
-                </a>
-              )}
-              {this.state.displayEmojis ? (
-                <div className="emojis-list">
-                  <span onClick={() => this.setState({ emoji: undefined })}>
-                    ✕
-                  </span>
-                  {this.props.emojis.map((e, i) => {
-                    return (
-                      <span onClick={() => this.setState({ emoji: e })} key={i}>
-                        {e}
-                      </span>
-                    );
-                  })}
-                </div>
-              ) : undefined}
-            </div>
           </div>
         )}
         <div className="tips">
           <p>{contributions.length} contributions :</p>
-          {contributions.map((bagId) => {
+          {contributions.map((purseId) => {
             let data;
             try {
-              data = JSON.parse(decodeURI(this.props.bagsData[bagId]));
+              data = JSON.parse(decodeURI(this.props.pursesData[purseId]));
             } catch (err) {
               console.log(err);
               return (
-                <p key={bagId} className="">
+                <p key={purseId} className="">
                   Unable to parse
                 </p>
               );
             }
             return (
-              <p key={bagId}>
+              <p key={purseId}>
                 <b className="name">
-                  {data.emoji ? data.emoji + ' ' : ''}
-                  {this.props.bagsData[bagId] ? data.name : 'Anonymous'}
+                  {this.props.pursesData[purseId] ? data.name : 'Anonymous'}
                 </b>{' '}
                 <span>tipped</span>
                 <b className="amount">
                   {formatter.format(
-                    (this.props.bags[bagId].quantity * this.props.price) /
+                    (this.props.purses[purseId].quantity *
+                      dataMainPurse.price) /
                       100000000
                   )}{' '}
                   REV
