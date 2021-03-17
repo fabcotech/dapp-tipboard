@@ -238,6 +238,7 @@ export class AppComponent extends React.Component {
     if (this.props.values) {
       return (
         <TipBoard
+          contractRegistryUri={this.props.registryUri}
           onPurchase={this.onPurchase}
           values={this.props.values}
           emojis={this.props.emojis}

@@ -18,7 +18,7 @@ body {
   background: #111;
 }
 #root.loading:before {
-  content: "Loading";
+  content: 'Loading';
   position: absolute;
   top: 50%;
   left: 50%;
@@ -81,16 +81,16 @@ p {
   overflow-y: auto;
   overflow-x: hidden;
 }
-.emojis-list span{
+.emojis-list span {
   cursor: pointer;
   width: 10px;
   height: 12px;
   font-size: 1.1rem;
   padding: 1px;
 }
-.emojis-list span:hover{
+.emojis-list span:hover {
   transform: scale(1.05);
-  background-color: rgba(255,255,255,0.9);
+  background-color: rgba(255, 255, 255, 0.9);
 }
 .cell-form {
   margin-top: 20px;
@@ -148,7 +148,6 @@ p {
   animation-iteration-count: 1;
 }
 .tips > p .emoji {
-
 }
 @keyframes slide {
   from {
@@ -178,4 +177,9 @@ p {
 
 .has-text-danger {
   text-align: center;
+}
+.link {
+  text-decoration: underline;
+  color: #fff;
+  margin-bottom: 10px;
 }

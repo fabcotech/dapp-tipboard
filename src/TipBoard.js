@@ -39,6 +39,9 @@ export class TipBoard extends React.Component {
     return (
       <div className="tip-board">
         <h3 className="title is-3">{this.props.values.title}</h3>
+        <span className="link">
+          tipboard?contract={this.props.contractRegistryUri}
+        </span>
         {this.props.values.description && (
           <p className="description">{this.props.values.description}</p>
         )}
