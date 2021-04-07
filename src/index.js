@@ -67,8 +67,8 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        if (mainValues.version !== '5.0.0') {
-          bodyError('Version should be 5.0.0');
+        if (mainValues.version !== '5.0.2') {
+          bodyError('Version should be 5.0.2');
           return;
         }
 

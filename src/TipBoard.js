@@ -21,7 +21,7 @@ export class TipBoard extends React.Component {
     const contributions = Object.keys(this.props.purses)
       .filter((k) => k !== '2' && this.props.purses[k].type === '0')
       .sort((a, b) => {
-        if (a < b) {
+        if (parseInt(a) < parseInt(b)) {
           return 1;
         } else {
           return -1;
@@ -93,7 +93,7 @@ export class TipBoard extends React.Component {
                 </div>
               </div>
               <div className="field">
-                <label className="label">Total price</label>
+                <label className="label">Contribution price</label>
                 <div>
                   <span className="total-price">
                     <b>

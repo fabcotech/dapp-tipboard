@@ -1,6 +1,6 @@
 {
   "name": "dapp-tipboard",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Web application for Dappy to raise funds or create a jackpot.",
   "main": "index.js",
   "scripts": {
@@ -24,8 +24,8 @@
     "webpack-cli": "^3.3.6"
   },
   "dependencies": {
-    "dappy-cli": "0.4.6",
-    "rchain-token": "fabcotech/rchain-token#aa9479de2ba2605180df206b75e50db2af327ac0",
+    "dappy-cli": "0.4.9",
+    "rchain-token": "fabcotech/rchain-token#c01e1e5bd343c9cf2a7b1af8133541017daedb65",
     "react": "16.8.5",
     "react-dom": "16.8.5"
   }
