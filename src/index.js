@@ -4,10 +4,10 @@ import ReactDOM from 'react-dom';
 import { AppComponent } from './App';
 
 import {
-  readPursesIdsTerm,
+  readAllPursesTerm,
   readTerm,
   readPursesDataTerm,
-  readPursesTerm,
+  decodePurses,
 } from 'rchain-token';
 
 const bodyError = (err) => {
@@ -19,8 +19,8 @@ const bodyError = (err) => {
   document.body.appendChild(e);
 };
 
-let emojisRegistryUri = undefined;
 document.addEventListener('DOMContentLoaded', function () {
+  console.log('DOMContentLoaded');
   if (typeof dappyRChain !== 'undefined') {
     // testnet
     let contractRegistryUri;
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function () {
     dappyRChain
       .exploreDeploys([
         readTerm(contractRegistryUri),
-        readPursesIdsTerm(contractRegistryUri),
+        readAllPursesTerm(contractRegistryUri),
         readPursesDataTerm(contractRegistryUri, { pursesIds: ['3'] }),
       ])
       .then((a) => {
@@ -49,8 +49,11 @@ document.addEventListener('DOMContentLoaded', function () {
           JSON.parse(results[0].data).expr[0]
         );
 
-        const pursesIds = blockchainUtils.rhoValToJs(
-          JSON.parse(results[1].data).expr[0]
+        const pursesAsBytes = JSON.parse(results[1].data).expr[0];
+        const purses = decodePurses(
+          pursesAsBytes,
+          blockchainUtils.rhoExprToVar,
+          blockchainUtils.decodePar
         );
 
         let data;
@@ -67,38 +70,14 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        if (mainValues.version !== '5.0.2') {
-          bodyError('Version should be 5.0.2');
+        if (mainValues.version !== '5.0.3') {
+          bodyError('Version should be 5.0.3');
           return;
         }
 
-        /*
-        This process is an entire file (.json), not a string or number
-        It needs to be unzipped, see rholang-files-module, read.js script
-      */
-        /*         let buff;
-        let emojis = {};
-        try {
-          const emojisJSONFile = blockchainUtils.rhoValToJs(
-            JSON.parse(results[2].data).expr[0]
-          );
-          buff = Buffer.from(emojisJSONFile, 'base64');
-          const unzippedBuffer = Buffer.from(pako.inflate(buff));
-          const fileAsString = unzippedBuffer.toString('utf-8');
-          const fileAsJson = JSON.parse(fileAsString);
-          const emojisString = Buffer.from(fileAsJson.data, 'base64').toString(
-            'utf-8'
-          );
-          emojis = JSON.parse(emojisString).emojis;
-        } catch (err) {
-          console.log(err);
-          console.log(
-            'failed to retreive emojis (.data.expr.ExprString.data), raw value :'
-          );
-        } */
-
+        const ids = Object.keys(purses);
         // if pursesIds includes '3' it means tha rchain-token has already been depoloyed
-        if (pursesIds.includes('3')) {
+        if (ids.includes('3')) {
           // Get values from rchain-token contract
           const values = JSON.parse(decodeURI(data['3']));
           document.title = values.title;
@@ -110,23 +89,15 @@ document.addEventListener('DOMContentLoaded', function () {
           ) {
             dappyRChain
               .exploreDeploys([
-                readPursesTerm(contractRegistryUri, {
-                  pursesIds: pursesIds,
-                }),
                 readPursesDataTerm(contractRegistryUri, {
-                  pursesIds: pursesIds,
+                  pursesIds: ids.slice(0, 100),
                 }),
               ])
               .then((b) => {
                 const results = JSON.parse(b).results;
-                let purses = {};
-                const expr = JSON.parse(results[0].data).expr[0];
-                if (expr) {
-                  purses = blockchainUtils.rhoValToJs(expr);
-                }
 
                 let pursesData = {};
-                const expr2 = JSON.parse(results[1].data).expr[0];
+                const expr2 = JSON.parse(results[0].data).expr[0];
                 if (expr2) {
                   pursesData = blockchainUtils.rhoValToJs(expr2);
                 }

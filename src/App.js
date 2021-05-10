@@ -1,10 +1,10 @@
 import React from 'react';
 import {
-  readPursesIdsTerm,
+  readAllPursesTerm,
   readPursesDataTerm,
   createPursesTerm,
   purchaseTerm,
-  readPursesTerm,
+  decodePurses,
 } from 'rchain-token';
 
 import { GenesisFormComponent } from './GenesisForm';
@@ -25,33 +25,28 @@ export class AppComponent extends React.Component {
       setInterval(() => {
         dappyRChain
           // shortcut
-          .exploreDeploys([readPursesIdsTerm(this.props.registryUri)])
+          .exploreDeploys([readAllPursesTerm(this.props.registryUri)])
           .then((a2) => {
             const results2 = JSON.parse(a2).results;
-            const pursesIds = blockchainUtils.rhoValToJs(
-              JSON.parse(results2[0].data).expr[0]
+            const pursesAsBytes = JSON.parse(results2[0].data).expr[0];
+            const purses = decodePurses(
+              pursesAsBytes,
+              blockchainUtils.rhoExprToVar,
+              blockchainUtils.decodePar
             );
+
             dappyRChain
               .exploreDeploys([
-                readPursesTerm(this.props.registryUri, {
-                  pursesIds: pursesIds,
-                }),
                 readPursesDataTerm(this.props.registryUri, {
-                  pursesIds: pursesIds,
+                  pursesIds: Object.keys(purses),
                 }),
               ])
               .then((b) => {
                 const results = JSON.parse(b).results;
-                let purses = {};
-                const expr = JSON.parse(results[0].data).expr[0];
-                if (expr) {
-                  purses = blockchainUtils.rhoValToJs(expr);
-                }
-
                 let pursesData = {};
-                const expr2 = JSON.parse(results[1].data).expr[0];
-                if (expr2) {
-                  pursesData = blockchainUtils.rhoValToJs(expr2);
+                const expr1 = JSON.parse(results[0].data).expr[0];
+                if (expr1) {
+                  pursesData = blockchainUtils.rhoValToJs(expr1);
                 }
 
                 this.setState({
@@ -77,6 +72,7 @@ export class AppComponent extends React.Component {
         ['0']: {
           id: '0',
           publicKey: this.props.publicKey,
+          box: this.props.box,
           type: '0',
           quantity: payload.quantity,
           price: payload.price,
@@ -84,6 +80,7 @@ export class AppComponent extends React.Component {
         ['1']: {
           id: '1',
           publicKey: this.props.publicKey,
+          box: this.props.box,
           type: 'data',
           quantity: 1,
           price: null,
@@ -143,6 +140,7 @@ export class AppComponent extends React.Component {
           // save separate purses in box even if same .type and .price Nil
           actionAfterPurchase: 'SAVE_PURSE_SEPARATELY',
           // avoid replacement of dappy cli
+          // will be replaced by dappy browser
           toBoxRegistryUri: ['TO_BOX_REGI', 'STRY_URI'].join(''),
           purseId: '2',
           quantity: payload.quantity,
@@ -150,6 +148,7 @@ export class AppComponent extends React.Component {
           newId: '', //ignored
           price: this.props.purses['2'].price,
           // avoid replacement of dappy cli
+          // will be replaced by dappy browser
           publicKey: 'PUBLIC' + '_KEY'.substr(0),
         }),
         signatures: {},
