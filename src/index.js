@@ -5,10 +5,12 @@ import { AppComponent } from './App';
 
 import {
   readAllPursesTerm,
-  readTerm,
+  readConfigTerm,
   readPursesDataTerm,
   decodePurses,
 } from 'rchain-token';
+
+const DEFAULT_MASTER_REGISTRY_URI_MAINNET = 'xyowz3ncnhnys9krxuuu1kunoyuud8cca16jntmm8xtrkserkcfoek';
 
 const bodyError = (err) => {
   const e = document.createElement('span');
@@ -20,32 +22,57 @@ const bodyError = (err) => {
 };
 
 document.addEventListener('DOMContentLoaded', function () {
-  console.log('DOMContentLoaded');
   if (typeof dappyRChain !== 'undefined') {
-    // testnet
-    let contractRegistryUri;
-    if (window.location.search.startsWith('?contract=')) {
-      contractRegistryUri = window.location.search.slice('?contract='.length);
-    }
 
-    if (!contractRegistryUri || contractRegistryUri.length !== 54) {
+    const urlParams = new URLSearchParams(window.location.search)
+
+    let masterRegistryUri ;
+    if (urlParams.get('master')) {
+      console.log('found master registry URI in parameters', masterRegistryUri)
+      masterRegistryUri = urlParams.get('master');
+    } else {
+      console.log('picking default mainnet / d network master registry URI', DEFAULT_MASTER_REGISTRY_URI_MAINNET)
+      masterRegistryUri = DEFAULT_MASTER_REGISTRY_URI_MAINNET
+    }
+    let contractId = urlParams.get('contract');
+    let purseId = urlParams.get('contract') || "index";
+
+
+    if (!contractId || contractId.length === 0) {
       bodyError(
-        'did not find registry URI in parameters ?contract=x, length must be 54'
+        'did not find contract id in parameters ?contract=x, length must be 54'
       );
       return;
     }
 
+    if (!purseId || purseId.length === 0) {
+      bodyError(
+        'did not find purse id in parameters ?contract=x, length must be 54'
+      );
+      return;
+    }
+
+    if (!masterRegistryUri || masterRegistryUri.length !== 54) {
+      bodyError(
+        'master registry URI is incorrect ?master=x, length must be 54'
+      );
+      return;
+    }
     // Get values from rchain-token contract
     dappyRChain
       .exploreDeploys([
-        readTerm(contractRegistryUri),
-        readAllPursesTerm(contractRegistryUri),
-        readPursesDataTerm(contractRegistryUri, { pursesIds: ['3'] }),
+        readConfigTerm({ masterRegistryUri, contractId }),
+        readAllPursesTerm({ masterRegistryUri: masterRegistryUri, contractId: contractId }),
+        readPursesDataTerm({
+          masterRegistryUri: masterRegistryUri,
+          pursesIds: ["2"],
+          contractId: contractId,
+        }),
       ])
       .then((a) => {
         const results = JSON.parse(a).results;
 
-        const mainValues = blockchainUtils.rhoValToJs(
+        const config = blockchainUtils.rhoValToJs(
           JSON.parse(results[0].data).expr[0]
         );
 
@@ -63,23 +90,23 @@ document.addEventListener('DOMContentLoaded', function () {
           );
         }
 
-        if (mainValues.fungible !== true) {
+        if (config.fungible !== true) {
           bodyError(
-            'This contract is fungible=true, you need a fungible=false contract to use tipboard'
+            'This contract is fungible=true (FT), you need a fungible=false (NFT) contract to use tipboard'
           );
           return;
         }
 
-        if (mainValues.version !== '5.0.3') {
-          bodyError('Version should be 5.0.3');
+        if (config.version !== '6.0.0') {
+          bodyError('Version should be 6.0.0');
           return;
         }
 
         const ids = Object.keys(purses);
-        // if pursesIds includes '3' it means tha rchain-token has already been depoloyed
-        if (ids.includes('3')) {
+        // if pursesIds includes '2' it means tha rchain-token has already been depoloyed
+        if (ids.includes('2')) {
           // Get values from rchain-token contract
-          const values = JSON.parse(decodeURI(data['3']));
+          const values = JSON.parse(decodeURI(data['2']));
           document.title = values.title;
           if (
             typeof values.price === 'number' &&
@@ -89,7 +116,9 @@ document.addEventListener('DOMContentLoaded', function () {
           ) {
             dappyRChain
               .exploreDeploys([
-                readPursesDataTerm(contractRegistryUri, {
+                readPursesDataTerm({
+                  masterRegistryUri,
+                  contractId,
                   pursesIds: ids.slice(0, 100),
                 }),
               ])
@@ -105,10 +134,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('root').setAttribute('class', 'loaded');
                 ReactDOM.render(
                   <AppComponent
+                    masterRegistryUri={masterRegistryUri}
+                    contractId={contractId}
                     values={values}
                     purses={purses}
                     pursesData={pursesData}
-                    registryUri={contractRegistryUri}
                   ></AppComponent>,
                   document.getElementById('root')
                 );
@@ -136,7 +166,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('root').setAttribute('class', 'loaded');
                 ReactDOM.render(
                   <AppComponent
-                    registryUri={contractRegistryUri}
+                    masterRegistryUri={masterRegistryUri}
+                    contractId={contractId}
                     publicKey={a.publicKey}
                     box={a.box}
                     values={undefined}

@@ -25,7 +25,7 @@ export class AppComponent extends React.Component {
       setInterval(() => {
         dappyRChain
           // shortcut
-          .exploreDeploys([readAllPursesTerm(this.props.registryUri)])
+          .exploreDeploys([readAllPursesTerm({ masterRegistryUri: this.props.masterRegistryUri, contractId: this.props.contractId })])
           .then((a2) => {
             const results2 = JSON.parse(a2).results;
             const pursesAsBytes = JSON.parse(results2[0].data).expr[0];
@@ -36,24 +36,26 @@ export class AppComponent extends React.Component {
             );
 
             dappyRChain
-              .exploreDeploys([
-                readPursesDataTerm(this.props.registryUri, {
-                  pursesIds: Object.keys(purses),
-                }),
-              ])
-              .then((b) => {
-                const results = JSON.parse(b).results;
-                let pursesData = {};
-                const expr1 = JSON.parse(results[0].data).expr[0];
-                if (expr1) {
-                  pursesData = blockchainUtils.rhoValToJs(expr1);
-                }
+            .exploreDeploys([
+              readPursesDataTerm({
+                masterRegistryUri: this.props.masterRegistryUri,
+                contractId: this.props.contractId,
+                pursesIds: Object.keys(purses),
+              }),
+            ])
+            .then((b) => {
+              const results = JSON.parse(b).results;
+              let pursesData = {};
+              const expr1 = JSON.parse(results[0].data).expr[0];
+              if (expr1) {
+                pursesData = blockchainUtils.rhoValToJs(expr1);
+              }
 
-                this.setState({
-                  purses: purses,
-                  pursesData: pursesData,
-                });
+              this.setState({
+                purses: purses,
+                pursesData: pursesData,
               });
+            });
           });
       }, 15000);
     }
@@ -68,27 +70,28 @@ export class AppComponent extends React.Component {
     }
 
     const payloadCreatePurse = {
+      masterRegistryUri: this.props.masterRegistryUri,
+      contractId: this.props.contractId,
+      boxId: this.props.box,
       purses: {
-        ['0']: {
-          id: '0',
-          publicKey: this.props.publicKey,
-          box: this.props.box,
+        ['1']: {
+          id: '', // will be set by rholang
+          boxId: this.props.box,
           type: '0',
           quantity: payload.quantity,
           price: payload.price,
         },
-        ['1']: {
-          id: '1',
-          publicKey: this.props.publicKey,
-          box: this.props.box,
+        ['2']: {
+          id: '', // will be set by rholang
+          boxId: this.props.box,
           type: 'data',
           quantity: 1,
           price: null,
         },
       },
       data: {
-        ['0']: null,
-        ['1']: encodeURI(
+        ['1']: null,
+        ['2']: encodeURI(
           JSON.stringify({
             title: payload.title,
             description: payload.description,
@@ -97,10 +100,9 @@ export class AppComponent extends React.Component {
           })
         ),
       },
-      fromBoxRegistryUri: this.props.box,
     };
 
-    const term = createPursesTerm(this.props.registryUri, payloadCreatePurse);
+    const term = createPursesTerm(payloadCreatePurse);
 
     dappyRChain
       .transaction({
@@ -114,10 +116,10 @@ export class AppComponent extends React.Component {
             const transactions = dappyStore.getState().transactions;
             const ids = Object.keys(transactions);
             if (ids.length) {
-              if (
-                transactions[ids[0]].value &&
-                transactions[ids[0]].value.status === 'completed'
-              ) {
+              const found = ids.find(id => {
+                return transactions[id].value && transactions[id].value.status === 'completed'
+              })
+              if (found) {
                 resolve(transactions[ids[0]].value);
               } else {
                 console.log('result from deploy not found yet');
@@ -136,20 +138,21 @@ export class AppComponent extends React.Component {
   onPurchase = (payload) => {
     dappyRChain
       .transaction({
-        term: purchaseTerm(this.props.registryUri, {
-          // save separate purses in box even if same .type and .price Nil
-          actionAfterPurchase: 'SAVE_PURSE_SEPARATELY',
+        term: purchaseTerm( {
+          masterRegistryUri: this.props.masterRegistryUri,
+          contractId: this.props.contractId,
+          purseId: '1',
           // avoid replacement of dappy cli
           // will be replaced by dappy browser
-          toBoxRegistryUri: ['TO_BOX_REGI', 'STRY_URI'].join(''),
-          purseId: '2',
+          boxId: ['TO_BOX_REGI', 'STRY_URI'].join(''),
           quantity: payload.quantity,
           data: payload.data,
-          newId: '', //ignored
-          price: this.props.purses['2'].price,
+          merge: false,
+          newId: '', // will be set by rholang
+          price: this.props.purses['1'].price,
           // avoid replacement of dappy cli
           // will be replaced by dappy browser
-          publicKey: 'PUBLIC' + '_KEY'.substr(0),
+          publicKey: ['PUBLIC', '_KEY'].join(''),
         }),
         signatures: {},
       })
@@ -237,7 +240,8 @@ export class AppComponent extends React.Component {
     if (this.props.values) {
       return (
         <TipBoard
-          contractRegistryUri={this.props.registryUri}
+          masterRegistryUri={this.props.masterRegistryUri}
+          contractId={this.props.contractId}
           onPurchase={this.onPurchase}
           values={this.props.values}
           emojis={this.props.emojis}

@@ -14,12 +14,12 @@ export class TipBoard extends React.Component {
   }
 
   render() {
-    const mainPurse = this.props.purses['2'];
-    const dataMainPurse = JSON.parse(decodeURI(this.props.pursesData['3']));
+    const mainPurse = this.props.purses['1'];
+    const dataMainPurse = JSON.parse(decodeURI(this.props.pursesData['2']));
 
     const over = !mainPurse || mainPurse.quantity === 0;
     const contributions = Object.keys(this.props.purses)
-      .filter((k) => k !== '2' && this.props.purses[k].type === '0')
+      .filter((k) => k !== '1' && k !== '2')
       .sort((a, b) => {
         if (parseInt(a) < parseInt(b)) {
           return 1;
@@ -31,7 +31,7 @@ export class TipBoard extends React.Component {
     const keys = Object.keys(this.props.purses);
     let sold = 0;
     for (let i = 1; i < keys.length; i += 1) {
-      if (keys[i] !== '2' && this.props.purses[keys[i]].type === '0') {
+      if (keys[i] !== '1' && keys[i] !== '2' && this.props.purses[keys[i]].type === '0') {
         sold += this.props.purses[keys[i]].quantity;
       }
     }
@@ -40,7 +40,7 @@ export class TipBoard extends React.Component {
       <div className="tip-board">
         <h3 className="title is-3">{this.props.values.title}</h3>
         <span className="link">
-          tipboard?contract={this.props.contractRegistryUri}
+          tipboard??master={this.props.masterRegistryUri}&contract={this.props.contractId}
         </span>
         {this.props.values.description && (
           <p className="description">{this.props.values.description}</p>

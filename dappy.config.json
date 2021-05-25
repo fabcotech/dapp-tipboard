@@ -10,7 +10,9 @@
     "readOnly": "http://127.0.0.1:40403",
     "validator": "http://127.0.0.1:40403",
     "privateKey": "",
-    "registryUri": "",
-    "boxRegistryUri": ""
+    "masterRegistryUri": "",
+    "contractId": "",
+    "boxId": "",
+    "purseId": ""
   }
 }
