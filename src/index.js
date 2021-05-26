@@ -10,7 +10,7 @@ import {
   decodePurses,
 } from 'rchain-token';
 
-const DEFAULT_MASTER_REGISTRY_URI_MAINNET = 'xyowz3ncnhnys9krxuuu1kunoyuud8cca16jntmm8xtrkserkcfoek';
+const DEFAULT_MASTER_REGISTRY_URI_MAINNET = 'afjrah43mg5486tt4yweju9nshbhwhg9zumz4g4gxu4b8uwhced9gz';
 
 const bodyError = (err) => {
   const e = document.createElement('p');
@@ -19,10 +19,11 @@ const bodyError = (err) => {
   e.style.fontSize = '1.8rem';
   e.innerText = err;
   const e2 = document.createElement('p');
-  e2.innerText = "URL should have the following structure : tipboard?contract=myftcontract";
+  e2.innerText = `URL should have the following structure : tipboard?contract=myftcontract\n
+If you are using tipboard on a secondary network, also reference the master registry uri &master=aaabbb`;
   e2.style.color = '#B22';
   e2.style.fontWeight = '400';
-  e2.style.fontSize = '1.2rem';
+  e2.style.fontSize = '1.1rem';
   e2.style.paddingTop = '10px';
   document.body.innerHTML = '';
   document.body.style.background = '#111';
@@ -38,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let masterRegistryUri ;
     if (urlParams.get('master')) {
-      console.log('found master registry URI in parameters', masterRegistryUri)
+      console.log('found master registry URI in parameters', urlParams.get('master'))
       masterRegistryUri = urlParams.get('master');
     } else {
       console.log('picking default mainnet / d network master registry URI', DEFAULT_MASTER_REGISTRY_URI_MAINNET)
