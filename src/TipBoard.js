@@ -40,7 +40,7 @@ export class TipBoard extends React.Component {
       <div className="tip-board">
         <h3 className="title is-3">{this.props.values.title}</h3>
         <span className="link">
-          tipboard??master={this.props.masterRegistryUri}&contract={this.props.contractId}
+          tipboard?master={this.props.masterRegistryUri}&contract={this.props.contractId}
         </span>
         {this.props.values.description && (
           <p className="description">{this.props.values.description}</p>
