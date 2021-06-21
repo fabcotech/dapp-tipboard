@@ -144,7 +144,7 @@ export class AppComponent extends React.Component {
           purseId: '1',
           // avoid replacement of dappy cli
           // will be replaced by dappy browser
-          boxId: ['TO_BOX_REGI', 'STRY_URI'].join(''),
+          boxId: ['BOX_', 'ID'].join(''),
           quantity: payload.quantity,
           data: payload.data,
           merge: false,

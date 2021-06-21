@@ -46,19 +46,10 @@ document.addEventListener('DOMContentLoaded', function () {
       masterRegistryUri = DEFAULT_MASTER_REGISTRY_URI_MAINNET
     }
     let contractId = urlParams.get('contract');
-    let purseId = urlParams.get('contract') || "index";
-
 
     if (!contractId || contractId.length === 0) {
       bodyError(
         'did not find contract id in parameters ?contract=x, length must be 54'
-      );
-      return;
-    }
-
-    if (!purseId || purseId.length === 0) {
-      bodyError(
-        'did not find purse id in parameters ?contract=x, length must be 54'
       );
       return;
     }
@@ -103,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (config.fungible !== true) {
           bodyError(
-            'This contract is fungible=true (FT), you need a fungible=false (NFT) contract to use tipboard'
+            'This contract is fungible=false (NFT), you need a fungible=true (FT) contract to use tipboard'
           );
           return;
         }
