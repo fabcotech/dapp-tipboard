@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "dappy-cli": "0.5.9",
-    "rchain-token": "fabcotech/rchain-token#734c401fff2bc8bb67fb9f9cb929977d6cb17081",
+    "rchain-token": "fabcotech/rchain-token#3176d1037bb5fb4131af24553056c96690a75e7d",
     "react": "16.8.5",
     "react-dom": "16.8.5"
   }
