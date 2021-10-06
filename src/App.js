@@ -21,11 +21,19 @@ export class AppComponent extends React.Component {
   }
 
   componentDidMount() {
+    console.log('did mount');
+    console.log(this.props);
     if (this.props.purses) {
       setInterval(() => {
         dappyRChain
           // shortcut
-          .exploreDeploys([readAllPursesTerm({ masterRegistryUri: this.props.masterRegistryUri, contractId: this.props.contractId })])
+          .exploreDeploys([
+            readAllPursesTerm({
+              masterRegistryUri: this.props.masterRegistryUri,
+              contractId: this.props.contractId,
+              depth: 2,
+            }),
+          ])
           .then((a2) => {
             const results2 = JSON.parse(a2).results;
             const pursesAsBytes = JSON.parse(results2[0].data).expr[0];
@@ -34,28 +42,30 @@ export class AppComponent extends React.Component {
               blockchainUtils.rhoExprToVar,
               blockchainUtils.decodePar
             );
+            console.log('App purses', purses);
 
             dappyRChain
-            .exploreDeploys([
-              readPursesDataTerm({
-                masterRegistryUri: this.props.masterRegistryUri,
-                contractId: this.props.contractId,
-                pursesIds: Object.keys(purses),
-              }),
-            ])
-            .then((b) => {
-              const results = JSON.parse(b).results;
-              let pursesData = {};
-              const expr1 = JSON.parse(results[0].data).expr[0];
-              if (expr1) {
-                pursesData = blockchainUtils.rhoValToJs(expr1);
-              }
+              .exploreDeploys([
+                readPursesDataTerm({
+                  masterRegistryUri: this.props.masterRegistryUri,
+                  contractId: this.props.contractId,
+                  pursesIds: Object.keys(purses),
+                }),
+              ])
+              .then((b) => {
+                const results = JSON.parse(b).results;
+                let pursesData = {};
+                const expr1 = JSON.parse(results[0].data).expr[0];
+                if (expr1) {
+                  pursesData = blockchainUtils.rhoValToJs(expr1);
+                }
+                console.log('App pursesData', pursesData);
 
-              this.setState({
-                purses: purses,
-                pursesData: pursesData,
+                this.setState({
+                  purses: purses,
+                  pursesData: pursesData,
+                });
               });
-            });
           });
       }, 15000);
     }
@@ -77,14 +87,12 @@ export class AppComponent extends React.Component {
         ['1']: {
           id: '', // will be set by rholang
           boxId: this.props.box,
-          type: '0',
           quantity: payload.quantity,
           price: payload.price,
         },
         ['2']: {
           id: '', // will be set by rholang
           boxId: this.props.box,
-          type: 'data',
           quantity: 1,
           price: null,
         },
@@ -116,9 +124,12 @@ export class AppComponent extends React.Component {
             const transactions = dappyStore.getState().transactions;
             const ids = Object.keys(transactions);
             if (ids.length) {
-              const found = ids.find(id => {
-                return transactions[id].value && transactions[id].value.status === 'completed'
-              })
+              const found = ids.find((id) => {
+                return (
+                  transactions[id].value &&
+                  transactions[id].value.status === 'completed'
+                );
+              });
               if (found) {
                 resolve(transactions[ids[0]].value);
               } else {
@@ -138,10 +149,10 @@ export class AppComponent extends React.Component {
   onPurchase = (payload) => {
     dappyRChain
       .transaction({
-        term: purchaseTerm( {
+        term: purchaseTerm({
           masterRegistryUri: this.props.masterRegistryUri,
           contractId: this.props.contractId,
-          purseId: '1',
+          purseId: this.props.purseToPurchaseFrom,
           // avoid replacement of dappy cli
           // will be replaced by dappy browser
           boxId: ['BOX_', 'ID'].join(''),
@@ -149,7 +160,7 @@ export class AppComponent extends React.Component {
           data: payload.data,
           merge: false,
           newId: '', // will be set by rholang
-          price: this.props.purses['1'].price,
+          price: this.props.purses[this.props.purseToPurchaseFrom].price,
           // avoid replacement of dappy cli
           // will be replaced by dappy browser
           publicKey: ['PUBLIC', '_KEY'].join(''),
@@ -241,6 +252,8 @@ export class AppComponent extends React.Component {
       return (
         <TipBoard
           masterRegistryUri={this.props.masterRegistryUri}
+          purseToPurchaseFrom={this.props.purseToPurchaseFrom}
+          purseForData={this.props.purseForData}
           contractId={this.props.contractId}
           onPurchase={this.onPurchase}
           values={this.props.values}

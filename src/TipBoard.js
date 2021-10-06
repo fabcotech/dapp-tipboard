@@ -14,8 +14,10 @@ export class TipBoard extends React.Component {
   }
 
   render() {
-    const mainPurse = this.props.purses['1'];
-    const dataMainPurse = JSON.parse(decodeURI(this.props.pursesData['2']));
+    const mainPurse = this.props.purses[this.props.purseToPurchaseFrom];
+    const dataMainPurse = JSON.parse(
+      decodeURI(this.props.pursesData[this.props.purseForData])
+    );
 
     const over = !mainPurse || mainPurse.quantity === 0;
     const contributions = Object.keys(this.props.purses)
@@ -31,7 +33,11 @@ export class TipBoard extends React.Component {
     const keys = Object.keys(this.props.purses);
     let sold = 0;
     for (let i = 1; i < keys.length; i += 1) {
-      if (keys[i] !== '1' && keys[i] !== '2' && this.props.purses[keys[i]].type === '0') {
+      if (
+        keys[i] !== '1' &&
+        keys[i] !== '2' &&
+        this.props.purses[keys[i]].type === '0'
+      ) {
         sold += this.props.purses[keys[i]].quantity;
       }
     }
@@ -40,7 +46,8 @@ export class TipBoard extends React.Component {
       <div className="tip-board">
         <h3 className="title is-3">{this.props.values.title}</h3>
         <span className="link">
-          tipboard?master={this.props.masterRegistryUri}&contract={this.props.contractId}
+          tipboard?master={this.props.masterRegistryUri}&contract=
+          {this.props.contractId}
         </span>
         {this.props.values.description && (
           <p className="description">{this.props.values.description}</p>

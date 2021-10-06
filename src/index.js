@@ -10,7 +10,8 @@ import {
   decodePurses,
 } from 'rchain-token';
 
-const DEFAULT_MASTER_REGISTRY_URI_MAINNET = 'afjrah43mg5486tt4yweju9nshbhwhg9zumz4g4gxu4b8uwhced9gz';
+const DEFAULT_MASTER_REGISTRY_URI_MAINNET =
+  'afjrah43mg5486tt4yweju9nshbhwhg9zumz4g4gxu4b8uwhced9gz';
 
 const bodyError = (err) => {
   const e = document.createElement('p');
@@ -19,8 +20,8 @@ const bodyError = (err) => {
   e.style.fontSize = '1.8rem';
   e.innerText = err;
   const e2 = document.createElement('p');
-  e2.innerText = `URL should have the following structure : tipboard?contract=myftcontract\n
-If you are using tipboard on a secondary network, also reference the master registry uri &master=aaabbb`;
+  e2.innerText = `URL should have the following structure : tips?contract=myftcontract\n
+If you are using tips on a secondary network, also reference the master registry uri &master=aaabbb`;
   e2.style.color = '#B22';
   e2.style.fontWeight = '400';
   e2.style.fontSize = '1.1rem';
@@ -34,16 +35,21 @@ If you are using tipboard on a secondary network, also reference the master regi
 
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof dappyRChain !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
 
-    const urlParams = new URLSearchParams(window.location.search)
-
-    let masterRegistryUri ;
+    let masterRegistryUri;
     if (urlParams.get('master')) {
-      console.log('found master registry URI in parameters', urlParams.get('master'))
+      console.log(
+        'found master registry URI in parameters',
+        urlParams.get('master')
+      );
       masterRegistryUri = urlParams.get('master');
     } else {
-      console.log('picking default mainnet / d network master registry URI', DEFAULT_MASTER_REGISTRY_URI_MAINNET)
-      masterRegistryUri = DEFAULT_MASTER_REGISTRY_URI_MAINNET
+      console.log(
+        'picking default mainnet / d network master registry URI',
+        DEFAULT_MASTER_REGISTRY_URI_MAINNET
+      );
+      masterRegistryUri = DEFAULT_MASTER_REGISTRY_URI_MAINNET;
     }
     let contractId = urlParams.get('contract');
 
@@ -64,32 +70,43 @@ document.addEventListener('DOMContentLoaded', function () {
     dappyRChain
       .exploreDeploys([
         readConfigTerm({ masterRegistryUri, contractId }),
-        readAllPursesTerm({ masterRegistryUri: masterRegistryUri, contractId: contractId }),
+        readAllPursesTerm({
+          masterRegistryUri: masterRegistryUri,
+          contractId: contractId,
+          depth: 2,
+        }),
         readPursesDataTerm({
           masterRegistryUri: masterRegistryUri,
-          pursesIds: ["2"],
+          pursesIds: ['2', '1'],
           contractId: contractId,
         }),
       ])
       .then((a) => {
         const results = JSON.parse(a).results;
 
-        const config = blockchainUtils.rhoValToJs(
-          JSON.parse(results[0].data).expr[0]
-        );
+        const expr0 = JSON.parse(results[0].data).expr[0];
+        const expr1 = JSON.parse(results[1].data).expr[0];
+        const expr2 = JSON.parse(results[2].data).expr[0];
+        if (!expr0) {
+          bodyError(
+            `Contract not found, are you sure contract ${contractId} exists ?`
+          );
+          return;
+        }
+        const config = blockchainUtils.rhoValToJs(expr0);
 
-        const pursesAsBytes = JSON.parse(results[1].data).expr[0];
-        const purses = decodePurses(
-          pursesAsBytes,
-          blockchainUtils.rhoExprToVar,
-          blockchainUtils.decodePar
-        );
+        let purses = {};
+        if (expr1) {
+          purses = decodePurses(
+            expr1,
+            blockchainUtils.rhoExprToVar,
+            blockchainUtils.decodePar
+          );
+        }
 
         let data;
-        if (JSON.parse(results[2].data).expr[0]) {
-          data = blockchainUtils.rhoValToJs(
-            JSON.parse(results[2].data).expr[0]
-          );
+        if (expr2) {
+          data = blockchainUtils.rhoValToJs(expr2);
         }
 
         if (config.fungible !== true) {
@@ -99,16 +116,26 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        if (config.version !== '6.0.0') {
-          bodyError('Version should be 6.0.0');
+        if (config.version !== '12.0.1') {
+          bodyError('Version should be 12.0.1');
           return;
         }
 
         const ids = Object.keys(purses);
-        // if pursesIds includes '2' it means tha rchain-token has already been depoloyed
-        if (ids.includes('2')) {
+        // the data should be on one of those two purses
+        let dataId = undefined;
+        if (ids.includes('1') && data['1']) {
+          dataId = '1';
+        } else if (ids.includes('2') && data['2']) {
+          dataId = '2';
+        }
+        // if dataId is string
+        if (typeof dataId === 'string') {
+          const purseToPurchaseFrom = ['1', '2'].find(
+            (id) => typeof purses[id].price === 'number'
+          );
           // Get values from rchain-token contract
-          const values = JSON.parse(decodeURI(data['2']));
+          const values = JSON.parse(decodeURI(data[dataId]));
           document.title = values.title;
           if (
             typeof values.price === 'number' &&
@@ -126,11 +153,10 @@ document.addEventListener('DOMContentLoaded', function () {
               ])
               .then((b) => {
                 const results = JSON.parse(b).results;
-
                 let pursesData = {};
-                const expr2 = JSON.parse(results[0].data).expr[0];
-                if (expr2) {
-                  pursesData = blockchainUtils.rhoValToJs(expr2);
+                const exprData = JSON.parse(results[0].data).expr[0];
+                if (exprData) {
+                  pursesData = blockchainUtils.rhoValToJs(exprData);
                 }
 
                 document.getElementById('root').setAttribute('class', 'loaded');
@@ -139,6 +165,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     masterRegistryUri={masterRegistryUri}
                     contractId={contractId}
                     values={values}
+                    purseToPurchaseFrom={purseToPurchaseFrom}
+                    purseForData={purseToPurchaseFrom === '1' ? '2' : '1'}
                     purses={purses}
                     pursesData={pursesData}
                   ></AppComponent>,
