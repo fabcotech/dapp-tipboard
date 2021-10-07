@@ -8,17 +8,15 @@ body {
   background-position: center;
   background-size: cover;
   background-attachment: fixed;
-  background: linear-gradient(45deg, #46c, #44a);
+  background: #1f2242;
+  padding-top: 50px;
+  padding-left: 50px;
 }
 
-#root.loaded {
-  background: radial-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.5));
-}
-#root.loading {
-  background: #111;
-}
 #root.loading:before {
-  content: 'Loading';
+  content: 'Loading...';
+  font-size: 2rem;
+  font-weight: 500;
   position: absolute;
   top: 50%;
   left: 50%;
@@ -29,14 +27,16 @@ body {
   overflow-y: scroll;
   position: relative;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-start;
   height: 100%;
   width: 100%;
 }
 
 .genesis-form {
-  margin-top: 100px;
+  background: #262a4c;
+  padding: 6rem;
+  border-radius: 0.5rem;
   padding-bottom: 30px;
   font-size: 1.2em;
   color: #fff;
@@ -51,7 +51,9 @@ body {
 }
 
 .tip-board {
-  margin-top: 100px;
+  background: #262a4c;
+  padding: 6rem;
+  border-radius: 0.5rem;
   max-width: 1450px;
   min-width: 300px;
   display: flex;
@@ -61,6 +63,9 @@ body {
 .tip-board .description {
   white-space: break-spaces;
   margin-bottom: 10px;
+}
+.tip-board > p {
+  font-size: 1.4rem;
 }
 .is-3 {
   color: #fff;
@@ -136,10 +141,10 @@ p {
 }
 .tips > p {
   margin-bottom: 2px;
-  font-size: 1.1rem;
+  font-size: 1.4rem;
   display: grid;
   grid-template-rows: 100%;
-  grid-template-columns: 200px 63px 180px;
+  grid-template-columns: 200px 85px 180px;
   opacity: 1;
   transform: translateY(0px);
   animation: slide;
