@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (config.fungible !== true) {
           bodyError(
-            'This contract is fungible=false (NFT), you need a fungible=true (FT) contract to use tipboard'
+            'This contract is fungible=false (NFT), you need a fungible=true (FT) contract to use tips'
           );
           return;
         }
