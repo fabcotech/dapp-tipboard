@@ -10,8 +10,9 @@ import {
   decodePurses,
 } from 'rchain-token';
 
+const RCHAIN_TOKEN_SUPPORTED_VERSION = '14.0.0';
 const DEFAULT_MASTER_REGISTRY_URI_MAINNET =
-  'afjrah43mg5486tt4yweju9nshbhwhg9zumz4g4gxu4b8uwhced9gz';
+  'qxxunjju9rn51ehaus6se3td4gotyozw1zaykzjak749pbpjgocy97';
 
 const bodyError = (err) => {
   const e = document.createElement('p');
@@ -116,8 +117,10 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        if (config.version !== '12.0.1') {
-          bodyError('Version should be 12.0.1');
+        if (config.version !== RCHAIN_TOKEN_SUPPORTED_VERSION) {
+          bodyError(
+            `Version of rchain-token should be ${RCHAIN_TOKEN_SUPPORTED_VERSION}`
+          );
           return;
         }
 
